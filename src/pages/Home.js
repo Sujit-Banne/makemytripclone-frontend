@@ -36,15 +36,20 @@ export default function Home() {
   ];
 
   const handleSearch = (e) => {
-    if (e) e.preventDefault();
+    e.preventDefault();
     const query = searchQuery.trim();
-    if (!query) return;
+    if (!query) {
+      alert('Please enter a destination');
+      return;
+    }
 
     const params = new URLSearchParams();
     params.set('to', query);
     if (travelDate) params.set('date', travelDate);
 
-    navigate(`/flights?${params.toString()}`);
+    const searchUrl = `/flights?${params.toString()}`;
+    console.log('Navigating to:', searchUrl);
+    navigate(searchUrl);
   };
 
   const services = [
