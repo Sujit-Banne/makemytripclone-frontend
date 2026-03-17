@@ -44,6 +44,7 @@ export const updateVisa = (id, data) => api.put(`/admin/visas/${id}`, data);
 export const deleteVisa = (id) => api.delete(`/admin/visas/${id}`);
 
 export const getAdminStats = () => api.get('/admin/stats');
+export const getAdminRecentActivities = () => api.get('/admin/recent-activities');
 export const getAdminUsers = () => api.get('/admin/users');
 export const updateAdminUser = (id, data) => api.put(`/admin/users/${id}`, data);
 export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
