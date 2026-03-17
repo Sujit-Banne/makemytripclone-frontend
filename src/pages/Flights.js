@@ -21,9 +21,10 @@ export default function Flights() {
     const to = searchParams.get('to') || '';
     // const from = searchParams.get('from') || '';
 
-    setFilters({ from, to });
+    // setFilters({ from, to });
+     setFilters({ to });
 
-    fetchFlights({ from, to });
+    fetchFlights({ to });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
