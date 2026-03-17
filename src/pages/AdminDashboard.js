@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAdminStats, getAdminRecentActivities } from '../services/api';
+import { API_BASE_URL, getAdminStats, getAdminRecentActivities } from '../services/api';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -10,6 +10,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [streamConnected, setStreamConnected] = useState(false);
+  const eventSourceRef = useRef(null);
 
   useEffect(() => {
     if (!token) {
@@ -24,11 +27,41 @@ export default function AdminDashboard() {
 
     fetchDashboardData();
 
-    // Poll for updates every 30 seconds
+    // Poll for updates every 30 seconds (fallback for clients without SSE)
     const interval = setInterval(fetchDashboardData, 30000);
 
     return () => clearInterval(interval);
   }, [token, user.role, navigate]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const streamUrl = `${API_BASE_URL}/admin/stream?token=${token}`;
+    const source = new EventSource(streamUrl);
+
+    source.onopen = () => setStreamConnected(true);
+
+    source.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'update') {
+          fetchDashboardData();
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    };
+
+    source.onerror = () => {
+      setStreamConnected(false);
+    };
+
+    eventSourceRef.current = source;
+
+    return () => {
+      source.close();
+    };
+  }, [token]);
 
   const fetchDashboardData = async () => {
     try {
@@ -38,6 +71,7 @@ export default function AdminDashboard() {
       ]);
       setStats(statsResponse.data);
       setActivities(activitiesResponse.data);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -111,6 +145,16 @@ export default function AdminDashboard() {
     { label: 'Satisfaction', value: '4.8/5', change: '+0.2', icon: '⭐' }
   ];
 
+  const activityStyles = {
+    hotel_booking: { bg: 'bg-green-100', text: 'text-green-600' },
+    flight_booking: { bg: 'bg-blue-100', text: 'text-blue-600' },
+    visa_application: { bg: 'bg-pink-100', text: 'text-pink-600' },
+    user_registration: { bg: 'bg-purple-100', text: 'text-purple-600' },
+    default: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  };
+
+  const justUpdated = lastUpdated && new Date().getTime() - new Date(lastUpdated).getTime() < 15000;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -121,8 +165,18 @@ export default function AdminDashboard() {
               <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
               <p className="text-orange-100">Manage MakeMyTrip platform operations</p>
             </div>
-            <div className="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold text-sm">
-              ADMIN PANEL
+            <div className="flex items-center space-x-2">
+              <div className="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold text-sm">
+                ADMIN PANEL
+              </div>
+              <div className="text-xs text-white flex items-center space-x-2">
+                <span className={streamConnected ? 'text-emerald-200' : 'text-red-200'}>
+                  {streamConnected ? 'Live' : 'Offline'}
+                </span>
+                {lastUpdated && (
+                  <span className="text-white/80">Updated {new Date(lastUpdated).toLocaleTimeString()}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -130,7 +184,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Quick Stats */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className={`grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 ${justUpdated ? 'animate-pulse' : ''}`}>
           {quickStats.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center justify-between">
@@ -187,45 +241,44 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               {activities.map((activity, index) => {
                 const timeAgo = new Date(activity.timestamp).toLocaleString();
-                let icon, color, statusText;
+                const style = activityStyles[activity.type] || activityStyles.default;
+
+                let icon = '📝';
+                let statusText = 'Activity';
+
                 switch (activity.type) {
                   case 'hotel_booking':
                     icon = '🏨';
-                    color = 'green';
                     statusText = activity.status;
                     break;
                   case 'flight_booking':
                     icon = '✈️';
-                    color = 'blue';
                     statusText = activity.status;
                     break;
                   case 'visa_application':
                     icon = '🛂';
-                    color = 'pink';
                     statusText = activity.status;
                     break;
                   case 'user_registration':
                     icon = '👤';
-                    color = 'purple';
                     statusText = 'New User';
                     break;
                   default:
-                    icon = '📝';
-                    color = 'gray';
-                    statusText = 'Activity';
+                    break;
                 }
+
                 return (
                   <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100">
                     <div className="flex items-center">
-                      <div className={`bg-${color}-100 p-2 rounded-lg mr-4`}>
-                        <span className={`text-${color}-600`}>{icon}</span>
+                      <div className={`${style.bg} p-2 rounded-lg mr-4`}>
+                        <span className={`${style.text}`}>{icon}</span>
                       </div>
                       <div>
                         <p className="font-medium text-gray-800">{activity.message}</p>
                         <p className="text-gray-600 text-sm">{timeAgo}</p>
                       </div>
                     </div>
-                    <span className={`text-${color}-600 font-medium`}>{statusText}</span>
+                    <span className={`${style.text} font-medium`}>{statusText}</span>
                   </div>
                 );
               })}
