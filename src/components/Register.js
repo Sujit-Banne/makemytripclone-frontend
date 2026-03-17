@@ -121,13 +121,13 @@ export default function Register() {
             />
             <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
               I agree to the{' '}
-              <a href="#" className="text-orange-600 hover:text-orange-500 font-medium">
+              <button type="button" className="text-orange-600 hover:text-orange-500 font-medium">
                 Terms of Service
-              </a>{' '}
+              </button>{' '}
               and{' '}
-              <a href="#" className="text-orange-600 hover:text-orange-500 font-medium">
+              <button type="button" className="text-orange-600 hover:text-orange-500 font-medium">
                 Privacy Policy
-              </a>
+              </button>
             </label>
           </div>
 
