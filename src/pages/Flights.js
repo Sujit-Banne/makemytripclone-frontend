@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getFlights, bookFlight } from '../services/api';
 
 export default function Flights() {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState({ from: '', to: '' });
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState(null);
@@ -24,8 +26,17 @@ export default function Flights() {
   const [bookingLoading, setBookingLoading] = useState(false);
 
   useEffect(() => {
-    fetchFlights();
-  }, []);
+    const to = searchParams.get('to') || '';
+    const from = searchParams.get('from') || '';
+
+    setFilters({ from, to });
+
+    const query = {};
+    if (to) query.to = to;
+    if (from) query.from = from;
+
+    fetchFlights(query);
+  }, [searchParams.toString()]);
 
   const fetchFlights = async (query = {}) => {
     try {
@@ -194,44 +205,52 @@ export default function Flights() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {flights.map(flight => (
-          <div key={flight._id} className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-xl font-semibold">{flight.airline} - {flight.flightNumber}</h3>
-                <p className="text-gray-600 text-sm">{flight.status.toUpperCase()}</p>
+      {flights.length === 0 ? (
+        <div className="text-center text-gray-600 py-12">
+          <p className="text-lg">No flights found for your search.</p>
+          <p className="text-sm">Try adjusting your destination or date.</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-6">
+          {flights.map(flight => (
+            <div key={flight._id} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold">{flight.airline} - {flight.flightNumber}</h3>
+                  <p className="text-gray-600 text-sm">{flight.status.toUpperCase()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold">₹{flight.seats.economy.price}</p>
+                  <p className="text-xs text-gray-500">from Economy</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-bold">₹{flight.seats.economy.price}</p>
-                <p className="text-xs text-gray-500">from Economy</p>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">Depart</p>
+                  <p className="font-medium">{flight.departure.city} ({flight.departure.airport})</p>
+                  <p className="text-sm text-gray-500">{new Date(flight.departure.date).toLocaleDateString()} {flight.departure.time}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Arrive</p>
+                  <p className="font-medium">{flight.arrival.city} ({flight.arrival.airport})</p>
+                  <p className="text-sm text-gray-500">{new Date(flight.arrival.date).toLocaleDateString()} {flight.arrival.time}</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">Duration: {flight.duration}</p>
+              <div className="mt-4 flex justify-between items-center">
+                <span className="text-sm text-gray-600">Aircraft: {flight.aircraft}</span>
+                <button 
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                  onClick={() => handleBookNow(flight)}
+                >
+                  Book Now
+                </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-600">Depart</p>
-                <p className="font-medium">{flight.departure.city} ({flight.departure.airport})</p>
-                <p className="text-sm text-gray-500">{new Date(flight.departure.date).toLocaleDateString()} {flight.departure.time}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Arrive</p>
-                <p className="font-medium">{flight.arrival.city} ({flight.arrival.airport})</p>
-                <p className="text-sm text-gray-500">{new Date(flight.arrival.date).toLocaleDateString()} {flight.arrival.time}</p>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600">Duration: {flight.duration}</p>
-            <div className="mt-4 flex justify-between items-center">
-              <span className="text-sm text-gray-600">Aircraft: {flight.aircraft}</span>
-              <button 
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={() => handleBookNow(flight)}
-              >
-                Book Now
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
 
       {/* Booking Modal */}
       {showBookingModal && selectedFlight && (

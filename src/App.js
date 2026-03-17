@@ -41,6 +41,7 @@ function App() {
           <Route path="/international" element={<International />} />
           <Route path="/domestic" element={<Domestic />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/stats" element={<AdminDashboard />} />
           <Route path="/admin/hotels" element={<AdminHotels />} />
           <Route path="/admin/flights" element={<AdminFlights />} />
           <Route path="/admin/visas" element={<AdminVisas />} />

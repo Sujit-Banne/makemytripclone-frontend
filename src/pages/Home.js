@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getPosts } from '../services/api';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [travelDate, setTravelDate] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     fetchAllPosts();
+    setMounted(true);
   }, []);
 
   const fetchAllPosts = async () => {
@@ -30,6 +34,18 @@ export default function Home() {
     { name: "London", image: "🌉", price: "₹65,000" },
     { name: "Tokyo", image: "🏯", price: "₹75,000" }
   ];
+
+  const handleSearch = (e) => {
+    if (e) e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    const params = new URLSearchParams();
+    params.set('to', query);
+    if (travelDate) params.set('date', travelDate);
+
+    navigate(`/flights?${params.toString()}`);
+  };
 
   const services = [
     {
@@ -74,7 +90,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50 transition-opacity duration-700 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
         <div className="max-w-7xl mx-auto px-4 py-16">
@@ -88,12 +104,12 @@ export default function Home() {
 
             {/* Search Bar */}
             <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 mb-8">
-              <div className="grid md:grid-cols-4 gap-4">
+              <form onSubmit={handleSearch} className="grid md:grid-cols-4 gap-4">
                 <div className="md:col-span-2">
                   <input
                     type="text"
                     placeholder="Where do you want to go?"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 transition"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -101,15 +117,20 @@ export default function Home() {
                 <div>
                   <input
                     type="date"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 transition"
+                    value={travelDate}
+                    onChange={(e) => setTravelDate(e.target.value)}
                   />
                 </div>
                 <div>
-                  <button className="w-full bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors font-semibold">
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all font-semibold"
+                  >
                     Search
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>

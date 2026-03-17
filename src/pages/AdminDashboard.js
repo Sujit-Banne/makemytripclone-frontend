@@ -36,30 +36,42 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!token) return;
 
-    const streamUrl = `${API_BASE_URL}/admin/stream?token=${token}`;
-    const source = new EventSource(streamUrl);
+    let reconnectTimer;
 
-    source.onopen = () => setStreamConnected(true);
+    const connect = () => {
+      const streamUrl = `${API_BASE_URL}/admin/stream?token=${token}`;
+      const source = new EventSource(streamUrl);
 
-    source.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === 'update') {
-          fetchDashboardData();
+      source.onopen = () => {
+        setStreamConnected(true);
+      };
+
+      source.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'update') {
+            fetchDashboardData();
+          }
+        } catch {
+          // ignore malformed messages
         }
-      } catch {
-        // ignore malformed messages
-      }
+      };
+
+      source.onerror = () => {
+        setStreamConnected(false);
+        source.close();
+        // Try reconnecting after a short delay
+        reconnectTimer = setTimeout(connect, 5000);
+      };
+
+      eventSourceRef.current = source;
     };
 
-    source.onerror = () => {
-      setStreamConnected(false);
-    };
-
-    eventSourceRef.current = source;
+    connect();
 
     return () => {
-      source.close();
+      clearTimeout(reconnectTimer);
+      eventSourceRef.current?.close();
     };
   }, [token]);
 
