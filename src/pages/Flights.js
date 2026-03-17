@@ -19,7 +19,7 @@ export default function Flights() {
 
   useEffect(() => {
     const to = searchParams.get('to') || '';
-    const from = searchParams.get('from') || '';
+    // const from = searchParams.get('from') || '';
 
     setFilters({ from, to });
 
